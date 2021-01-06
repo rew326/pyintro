@@ -6,66 +6,66 @@ from pytube import Playlist
 from pytube import YouTube
 import pytube
 import requests
+import helper
 
 kv = """
 ScreenManager:
+    in_class: in_class
+
     MenuScreen:
+        name: 'menu'
+        MDLabel:
+            text: 'YouTube Downloader'
+            font_style: 'H3'
+            pos_hint: {'center_x': 0.75, 'center_y': 0.8}
+        MDTextField:
+            id: in_class
+            hint_text: 'YouTube playlist URL'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.4}
+            size_hint_x: None
+            width: 300
+            icon_right: "arrow-down-bold"
+            required: True
+
+        MDRectangleFlatButton:
+            text: 'Load'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.3}
+            on_press:
+                app.load()
+                root.current = 'thumbnail'
+
+        MDLabel:
+            text: ''
+            id: show
+            pos_hint: {'center_x': 1.0, 'center_y': 0.2}
+
     VideoScreen:
-<MenuScreen>:
-    name: 'menu'
-    in_class: text
-    MDLabel:
-        text: 'YouTube Downloader'
-        font_style: 'H3'
-        pos_hint: {'center_x': 0.75, 'center_y': 0.8}
-    MDTextField:
-        id: text
-        hint_text: 'YouTube playlist URL'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-        size_hint_x: None
-        width: 300
-        icon_right: "arrow-down-bold"
-        required: True
-
-    MDRectangleFlatButton:
-        text: 'Load'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.3}
-        on_press:
-            app.load()
-            root.manager.current = 'thumbnail'
-
-    MDLabel:
-        text: ''
-        id: show
-        pos_hint: {'center_x': 1.0, 'center_y': 0.2}
-
-<VideoScreen>:
-    name: 'thumbnail'
-    Image:
-        id: vidthumbnail
-        source: ''
-        keep_ratio: False
-        allow_stretch: False
-        opacity: 0.9
-        size_hint: 0.4, 0.3
-        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-        border: (10,10,10,10)
-    MDRectangleFlatButton:
-        id: viddownload
-        text: 'Click "Next"'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.3}
-        on_press:
-            app.downloadVid()
-    MDRectangleFlatButton:
-        text: 'Next'
-        pos_hint: {'center_x': 0.5, 'center_y': 0.2}
-        on_press:
-            app.nextVid()
-            root.changeText()
-    MDRectangleFlatButton:
-        text: 'Back'
-        pos_hint: {'center_x':0.5,'center_y':0.1}
-        on_press: root.manager.current = 'menu'
+        name: 'thumbnail'
+        Image:
+            id: vidthumbnail
+            source: ''
+            keep_ratio: False
+            allow_stretch: False
+            opacity: 0.9
+            size_hint: 0.4, 0.3
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            border: (10,10,10,10)
+        MDRectangleFlatButton:
+            id: viddownload
+            text: 'Click "Next"'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.3}
+            on_press:
+                app.downloadVid()
+        MDRectangleFlatButton:
+            text: 'Next'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.2}
+            on_press:
+                app.nextVid()
+                root.changeText()
+        MDRectangleFlatButton:
+            text: 'Back'
+            pos_hint: {'center_x':0.5,'center_y':0.1}
+            on_press: root.current = 'menu'
 
 """
 
@@ -110,10 +110,8 @@ class Main(MDApp):
         global playlist
         global currVid
 
-        playlist = Playlist('https://www.youtube.com/playlist?list=PLg1MZ2KOzNJxdrmSXv0fQ9a5vuyfWtdKv')
+        playlist, currVid = helper.load_playlist(self.root.in_class.text)
         currVid = -1
-        sm.current = 'thumbnail'
-        self.nextVid()
 
     def nextVid(self):
         global playlist
@@ -128,12 +126,7 @@ class Main(MDApp):
         global playlist
         global currVid
 
-        url = playlist[currVid]
-
-        youtube = pytube.YouTube(url)
-        video = youtube.streams.first()
-
-        video.download()
+        helper.download_video(playlist, currVid)
 
 
 Main().run()
