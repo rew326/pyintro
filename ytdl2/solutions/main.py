@@ -2,7 +2,6 @@ from pytube import Playlist
 from pytube import YouTube
 
 # Task 1.: Accept user input for playlist url
-# Get a playlist
 playlistUrl = input("Playlist URL: ")
 
 # Task 2.: Print number of videos in a playlist
