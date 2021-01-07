@@ -2,6 +2,11 @@ from kivymd.app import MDApp
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import ObjectProperty
+from kivy.uix.popup import Popup
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.core.window import Window
+from kivy.uix.label import Label
 from pytube import Playlist
 from pytube import YouTube
 import pytube
@@ -32,15 +37,13 @@ ScreenManager:
             pos_hint: {'center_x': 0.5, 'center_y': 0.3}
             on_press:
                 app.load()
+                vidthumbnail.source = root.images[root.currVid]
+                viddownload.text = "Download: " + str(root.ytvidtitles[root.currVid])
                 root.current = 'thumbnail'
-
-        MDLabel:
-            text: ''
-            id: show
-            pos_hint: {'center_x': 1.0, 'center_y': 0.2}
 
     VideoScreen:
         name: 'thumbnail'
+        id: vidscreen
         Image:
             id: vidthumbnail
             source: ''
@@ -61,11 +64,16 @@ ScreenManager:
             pos_hint: {'center_x': 0.5, 'center_y': 0.2}
             on_press:
                 app.nextVid()
-                root.changeText()
+                vidthumbnail.source = root.images[root.currVid]
+                viddownload.text = "Download: " + str(root.ytvidtitles[root.currVid])
         MDRectangleFlatButton:
             text: 'Back'
             pos_hint: {'center_x':0.5,'center_y':0.1}
             on_press: root.current = 'menu'
+        MDLabel:
+            text: ''
+            id: show
+            pos_hint: {'center_x': 0.9, 'center_y': 0.7}
 
 """
 
@@ -74,59 +82,79 @@ class MenuScreen(Screen):
     pass
 
 class VideoScreen(Screen):
-
-    def __init__(self,**kwargs):
-        super(VideoScreen,self).__init__(**kwargs)
-
-    def changeText(self):
-        global playlist
-        global currVid
-
-        ytvid = YouTube(playlist[currVid])
-        img_data = requests.get(ytvid.thumbnail_url).content
-        with open("images/image_name_{}.jpg".format(currVid), 'wb') as handler:
-            handler.write(img_data)
-        self.ids.vidthumbnail.source = "images/image_name_{}.jpg".format(currVid)
-        self.ids.viddownload.text = "Download: " + ytvid.title
+    pass
 
 # Create the screen manager
 sm = ScreenManager()
 sm.add_widget(MenuScreen(name='menu'))
 sm.add_widget(VideoScreen(name='thumbnail'))
 
-
 class Main(MDApp):
 
     in_class = ObjectProperty(None)
-
+    ytvids = None
+    ytvidtitles = None
+    images = None
     playlist = None
     currVid = None
 
     def build(self):
+        Window.bind(on_request_close=self.on_request_close)
         screen = Builder.load_string(kv)
         return screen
 
     def load(self):
-        global playlist
-        global currVid
+        self.root.playlist, self.root.currVid = helper.load_playlist(self.root.in_class.text)
+        self.root.ytvids = []
+        self.root.ytvidtitles = []
+        self.root.images = []
 
-        playlist, currVid = helper.load_playlist(self.root.in_class.text)
-        currVid = -1
+        for i in range(len(self.root.playlist)):
+            ytvid = YouTube(self.root.playlist[i])
+
+            img_data = requests.get(ytvid.thumbnail_url).content
+            with open("images/image{}.jpg".format(i), 'wb') as handler:
+                handler.write(img_data)
+
+            self.root.ytvids.append(ytvid)
+            self.root.ytvidtitles.append(ytvid.title)
+            self.root.images.append('images/image' + str(i) + '.jpg')
 
     def nextVid(self):
-        global playlist
-        global currVid
-
-        if currVid + 1 == len(playlist):
-            currVid = 0
+        if self.root.currVid + 1 == len(self.root.playlist):
+            self.root.currVid = 0
         else:
-            currVid += 1
+            self.root.currVid += 1
 
     def downloadVid(self):
-        global playlist
-        global currVid
+        try:
+            helper.download_video(self.root.playlist, self.root.currVid)
+            label = self.root.ids.show
+            label.text = "Video successfully downloaded"
+        except Exception as e:
+            label = self.root.ids.show
+            label.text = "Fail: " + str(e)
 
-        helper.download_video(playlist, currVid)
+    def on_request_close(self, *args):
+        self.textpopup(title='Exit', text='Are you sure?')
+        return True
+
+    def textpopup(self, title='', text=''):
+        """Open the pop-up with the name.
+
+        :param title: title of the pop-up to open
+        :type title: str
+        :param text: main text of the pop-up to open
+        :type text: str
+        :rtype: None
+        """
+        box = BoxLayout(orientation='vertical')
+        box.add_widget(Label(text=text))
+        mybutton = Button(text='OK', size_hint=(1, 0.25))
+        box.add_widget(mybutton)
+        popup = Popup(title=title, content=box, size_hint=(None, None), size=(600, 300))
+        mybutton.bind(on_release=self.stop)
+        popup.open()
 
 
 Main().run()
