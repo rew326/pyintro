@@ -130,7 +130,7 @@ class Main(MDApp):
     def downloadVid(self):
         try:
             label = self.root.ids.show
-            label.text = helper.download_video(self.root.playlist, self.root.currVid)
+            label.text = helper.download_video(self.root.currVid, self.root.playlist)
         except Exception as e:
             label = self.root.ids.show
             label.text = "Fail: " + str(e)
