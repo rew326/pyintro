@@ -104,50 +104,44 @@ class Main(MDApp):
         return screen
 
     def load(self):
-        self.root.playlist, self.root.currVid = helper.load_playlist(self.root.in_class.text)
-        self.root.ytvids = []
+        self.root.currVid = 0
+        self.root.playlist, self.root.ytvids = helper.load_playlist(self.root.in_class.text)
         self.root.ytvidtitles = []
         self.root.images = []
 
-        for i in range(len(self.root.playlist)):
-            ytvid = YouTube(self.root.playlist[i])
+        for i in range(len(self.root.ytvids)):
+
+            ytvid = self.root.ytvids[i]
 
             img_data = requests.get(ytvid.thumbnail_url).content
-            with open("images/image{}.jpg".format(i), 'wb') as handler:
+            with open("images/{}.jpg".format(i), 'wb') as handler:
                 handler.write(img_data)
 
-            self.root.ytvids.append(ytvid)
             self.root.ytvidtitles.append(ytvid.title)
             self.root.images.append('images/image' + str(i) + '.jpg')
 
+    # Shift currVid index by one
     def nextVid(self):
-        if self.root.currVid + 1 == len(self.root.playlist):
-            self.root.currVid = 0
-        else:
-            self.root.currVid += 1
+        self.root.currVid = helper.next_video(self.root.currVid, self.root.playlist)
+        label = self.root.ids.show
+        label.text = ""
 
+    # Download function
     def downloadVid(self):
         try:
-            helper.download_video(self.root.playlist, self.root.currVid)
             label = self.root.ids.show
-            label.text = "Video successfully downloaded"
+            label.text = helper.download_video(self.root.playlist, self.root.currVid)
         except Exception as e:
             label = self.root.ids.show
             label.text = "Fail: " + str(e)
 
+    # Show text popup box on exit
     def on_request_close(self, *args):
         self.textpopup(title='Exit', text='Are you sure?')
         return True
 
+    # Exit text popup box
     def textpopup(self, title='', text=''):
-        """Open the pop-up with the name.
-
-        :param title: title of the pop-up to open
-        :type title: str
-        :param text: main text of the pop-up to open
-        :type text: str
-        :rtype: None
-        """
         box = BoxLayout(orientation='vertical')
         box.add_widget(Label(text=text))
         mybutton = Button(text='OK', size_hint=(1, 0.25))
@@ -156,5 +150,5 @@ class Main(MDApp):
         mybutton.bind(on_release=self.stop)
         popup.open()
 
-
+# Run application
 Main().run()
